@@ -29,6 +29,7 @@ class Summarize:
         summarized_content = summarize_content(content)
         File(summarized_path).write(summarized_content)
         log.info(f"Saved {summarized_path}")
+        os.startfile(summarized_path)
 
     def summarize_all(self):
         paths = self.original_paths
