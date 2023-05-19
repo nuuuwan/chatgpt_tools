@@ -28,10 +28,13 @@ class Summarize:
         content = File(original_path).read()
         summarized_content = summarize_content(content)
         File(summarized_path).write(summarized_content)
-        log.info(f"Summarized {original_path} to {summarized_path}")
+        log.info(f"Saved {summarized_path}")
 
     def summarize_all(self):
-        for path in self.original_paths:
+        paths = self.original_paths
+        n_paths = len(paths)
+        for i_path, path in enumerate(paths):
+            log.debug(f'Summarizing {i_path + 1}/{n_paths}: {path}')
             self.summarize(path)
 
 
