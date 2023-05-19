@@ -5,7 +5,7 @@ from gpttools.core.ChatWrapper import ChatWrapper
 log = Log('summarize_utils')
 
 MIN_BATCH_LEN = 5
-MAX_BATCH_LEN = 3_000
+MAX_BATCH_LEN = 15_000
 
 BULLETS_PER_SUMMARY = 5
 
@@ -16,7 +16,7 @@ def summarize_text(text):
 You are a summarization assistant.
 
 Given  a long article, you do ALL of the following:
-- list the {BULLETS_PER_SUMMARY} most important takeaways in short sentences,
+- list the {BULLETS_PER_SUMMARY} most important ideas, each in a short sentence,
 - mark bullets with a 💡icon.
 - replace ALL relavent words with their twitter handle
     (e.g. replace "IMF" with "@IMF")
@@ -28,30 +28,35 @@ Do you understand?
     return chat.send_user(text)
 
 
-def summarize_batch(batch):
-    summarized_batch = summarize_text(batch)
-    n_batch = len(batch)
-    n_summarized_batch = len(summarized_batch)
-    log.debug(f"Summarizing batch of {n_batch}B -> {n_summarized_batch}B")
-    return summarized_batch
-
-
 def summarize_content(content):
-    batches = batch_content(content)
+    n_content = len(content)
+    e_batches = int(n_content / MAX_BATCH_LEN)
+    max_batch_len = int(n_content / (e_batches + 1)) + 500
+    log.debug(f'{max_batch_len=:,} ({MAX_BATCH_LEN=:,}:)')
+
+    batches = batch_content(content, max_batch_len)
+    n_batches = len(batches)
+
     summarized_content = ''
-    for batch in batches:
+    for i_batch, batch in enumerate(batches):
         if len(batch.strip()) < MIN_BATCH_LEN:
             continue
-        summarized_batch = summarize_batch(batch)
+        summarized_batch = summarize_text(batch)
+        log.debug(
+            f"Summarized batch {i_batch + 1}/{n_batches}:"
+            + f" {len(batch):,}B -> {len(summarized_batch):,}B"
+        )
+
         summarized_content += summarized_batch + '\n...\n'
+
     return summarized_content
 
 
-def batch_content(content: str):
+def batch_content(content: str, max_batch_len: int):
     paragraphs = content.split("\n")
     batches = ['']
     for paragraph in paragraphs:
-        if len(batches[-1]) + len(paragraph) < MAX_BATCH_LEN:
+        if len(batches[-1]) + len(paragraph) < max_batch_len:
             batches[-1] += paragraph + "\n"
         else:
             batches.append('')
