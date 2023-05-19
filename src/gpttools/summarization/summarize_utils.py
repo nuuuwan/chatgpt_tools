@@ -4,7 +4,7 @@ from gpttools.core.ChatWrapper import ChatWrapper
 
 log = Log('summarize_utils')
 
-MIN_BATCH_LEN = 5
+MIN_BATCH_LEN = 10
 MAX_BATCH_LEN = 15_000
 
 BULLETS_PER_SUMMARY = 5
@@ -49,7 +49,7 @@ def summarize_content(content):
 
         summarized_content += summarized_batch + '\n...\n'
 
-    return summarized_content
+    return 'TL;DR (by #ChatGPT)\n\n' + summarized_content
 
 
 def batch_content(content: str, max_batch_len: int):

@@ -25,10 +25,13 @@ class Summarize:
 
     def summarize(self, original_path: str):
         summarized_path = original_path[:-4] + ".summary.txt"
-        content = File(original_path).read()
-        summarized_content = summarize_content(content)
-        File(summarized_path).write(summarized_content)
-        log.info(f"Saved {summarized_path}")
+        if os.path.exists(summarized_path):
+            log.info(f"Already summarized: {summarized_path}")
+        else:
+            content = File(original_path).read()
+            summarized_content = summarize_content(content)
+            File(summarized_path).write(summarized_content)
+            log.info(f"Saved {summarized_path}")
         os.startfile(summarized_path)
 
     def summarize_all(self):
