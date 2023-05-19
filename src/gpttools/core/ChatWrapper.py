@@ -4,23 +4,19 @@ import openai
 
 from gpttools.core.Message import Message
 
-openai.Completion.create(
-    model="text-davinci-003",
-    prompt="Say this is a test",
-    max_tokens=7,
-    temperature=0,
-)
-
 
 class ChatWrapper:
-    def __init__(self):
+    def __init__(self, temperature=0):
         openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.temperature = temperature
         self.messages = []
 
     def __send__(self, role, content):
         self.messages.append(Message(role=role, content=content).todict())
         response = openai.ChatCompletion.create(
-            model='gpt-3.5-turbo', messages=self.messages
+            model='gpt-3.5-turbo',
+            messages=self.messages,
+            temperature=self.temperature,
         )
         return response['choices'][0]['message']['content']
 
