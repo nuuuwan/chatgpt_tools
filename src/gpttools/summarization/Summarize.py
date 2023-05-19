@@ -1,8 +1,9 @@
 import os
 
-from utils import File, Log
+from utils import File, Log, hashx
 
 from gpttools.summarization.summarize_utils import summarize_content
+from gpttools.summarization.web_utils import get_url_text
 
 log = Log('Summarize')
 
@@ -34,13 +35,22 @@ class Summarize:
             log.info(f"Saved {summarized_path}")
         os.startfile(summarized_path)
 
-    def summarize_all(self):
+    def summarize_desktop(self):
         paths = self.original_paths
         n_paths = len(paths)
         for i_path, path in enumerate(paths):
             log.debug(f'Summarizing {i_path + 1}/{n_paths}: {path}')
             self.summarize(path)
 
+    def summarize_url(self, url):
+        hash = hashx.md5(url)
+        path = os.path.join(self.dir_root, f'www-{hash}.summary.txt')
 
-if __name__ == '__main__':
-    Summarize().summarize_all()
+        if os.path.exists(path):
+            log.info(f"Already summarized: {path}")
+        else:
+            content = get_url_text(url)
+            summarized_content = summarize_content(content)
+            File(path).write(summarized_content)
+            log.info(f"Saved {path}")
+        os.startfile(path)
