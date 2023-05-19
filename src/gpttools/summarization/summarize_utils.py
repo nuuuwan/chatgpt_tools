@@ -16,7 +16,7 @@ def summarize_text(text):
 You are a summarization assistant.
 
 Given  a long article, you do ALL of the following:
-- list the {BULLETS_PER_SUMMARY} most important ideas and numbers, 
+- list the {BULLETS_PER_SUMMARY} most important ideas and numbers,
 each in a short sentence,
 - mark bullets with a 💡icon.
 - replace ALL relavent words with their twitter handle
