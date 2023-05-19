@@ -2,20 +2,9 @@ import os
 
 from utils import File, Log
 
+from gpttools.summarization.summarize_utils import summarize_content
+
 log = Log('Summarize')
-
-
-def batch_content(content: str):
-    MAX_BATCH_LEN = 3_000
-    paragraphs = content.split("\n")
-    batches = ['']
-    for paragraph in paragraphs:
-        if len(batches[-1]) + len(paragraph) < MAX_BATCH_LEN:
-            batches[-1] += paragraph + "\n"
-        else:
-            batches.append('')
-            batches[-1] = paragraph + "\n"
-    return batches
 
 
 class Summarize:
@@ -34,21 +23,10 @@ class Summarize:
             paths.append(path)
         return paths
 
-    def summarize_batch(self, batch):
-        return batch
-
-    def summarize_content(self, content):
-        batches = batch_content(content)
-        summarized_content = ''
-        for batch in batches:
-            summarized_batch = self.summarize_batch(batch_content)
-            summarized_content += summarized_batch
-        return summarized_content
-
     def summarize(self, original_path: str):
         summarized_path = original_path[:-4] + ".summary.txt"
         content = File(original_path).read()
-        summarized_content = self.summarize_content(content)
+        summarized_content = summarize_content(content)
         File(summarized_path).write(summarized_content)
         log.info(f"Summarized {original_path} to {summarized_path}")
 
