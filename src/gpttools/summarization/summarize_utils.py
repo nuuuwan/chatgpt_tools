@@ -16,7 +16,8 @@ def summarize_text(text):
 You are a summarization assistant.
 
 Given  a long article, you do ALL of the following:
-- list the {BULLETS_PER_SUMMARY} most important ideas, each in a short sentence,
+- list the {BULLETS_PER_SUMMARY} most important ideas and numbers, 
+each in a short sentence,
 - mark bullets with a 💡icon.
 - replace ALL relavent words with their twitter handle
     (e.g. replace "IMF" with "@IMF")
@@ -32,7 +33,7 @@ def summarize_content(content):
     n_content = len(content)
     e_batches = int(n_content / MAX_BATCH_LEN)
     max_batch_len = int(n_content / (e_batches + 1)) + 500
-    log.debug(f'{max_batch_len=:,} ({MAX_BATCH_LEN=:,}:)')
+    log.debug(f'{max_batch_len=:,}, {MAX_BATCH_LEN=:,}')
 
     batches = batch_content(content, max_batch_len)
     n_batches = len(batches)
