@@ -7,7 +7,7 @@ log = Log('summarize_utils')
 MIN_BATCH_LEN = 10
 MAX_BATCH_LEN = 15_000
 
-BULLETS_PER_SUMMARY = 5
+BULLETS_PER_SUMMARY = 10
 
 
 def summarize_text(text):
