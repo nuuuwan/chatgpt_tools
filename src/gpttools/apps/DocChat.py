@@ -1,7 +1,9 @@
 import math
 from functools import cached_property
 
-from gpttools.core.Chat import ChatWrapper
+from utils import Log
+
+from gpttools.core.Chat import Chat
 
 CHARS_PER_BULLET = 1_000
 
@@ -30,9 +32,12 @@ and replace words with hashtags and handles
 
 MAX_BATCH_LEN = 15_000
 
+log = Log('DocChat')
 
-class DocChat(ChatWrapper):
+
+class DocChat(Chat):
     def __init__(self, content: str):
+        Chat.__init__(self)
         self.content = content
 
     def __len__(self):
@@ -43,9 +48,11 @@ class DocChat(ChatWrapper):
         content_size = len(self)
         n_batches = math.ceil(content_size / MAX_BATCH_LEN)
         avg_batch_size = int(content_size / n_batches)
+        log.debug(f'{content_size=}, {n_batches=}, {avg_batch_size=}')
+
         chunks = ['']
         for line in self.content.splitlines():
-            if len(child[-1]) > avg_batch_size:
+            if len(chunks[-1]) > avg_batch_size:
                 chunks.append('')
             chunks[-1] += line + '\n'
         return chunks
