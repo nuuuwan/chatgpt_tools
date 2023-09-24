@@ -22,7 +22,7 @@ DEFAULT_OPTIONS = dict(
 DEFAULT_MODEL = 'gpt-4'
 
 
-class ChatWrapper:
+class Chat:
     def __init__(self, model: str = DEFAULT_MODEL, options: dict = {}):
         openai.api_key = os.getenv("OPENAI_API_KEY")  # noqa
         self.model = model

@@ -2,7 +2,7 @@ import math
 
 from utils import Log
 
-from gpttools.core.ChatWrapper import ChatWrapper
+from gpttools.core.Chat import ChatWrapper
 
 log = Log('summarize_utils')
 

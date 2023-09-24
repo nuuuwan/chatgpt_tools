@@ -1,8 +1,8 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class ChatRole(StrEnum):
+class ChatRole(str, Enum):
     user = 'user'
     system = 'system'
     assistant = 'assistant'
-    # function = 'function'
+    function = 'function'
