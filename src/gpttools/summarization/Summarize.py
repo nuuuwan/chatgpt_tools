@@ -18,14 +18,20 @@ class Summarize:
         for file in os.listdir(self.dir_root):
             if not file.endswith(".txt"):
                 continue
-            if file.endswith(".summary.txt"):
+            if "summary." in file:
                 continue
             path = os.path.join(self.dir_root, file)
             paths.append(path)
         return paths
 
+    @staticmethod
+    def get_summarized_path(original_path: str) -> str:
+        tokens = list(os.path.split(original_path))
+        tokens[-1] = 'summary.' + tokens[-1]
+        return os.path.join(*tokens)
+
     def summarize(self, original_path: str):
-        summarized_path = original_path[:-4] + ".summary.txt"
+        summarized_path = Summarize.get_summarized_path(original_path)
         if os.path.exists(summarized_path):
             log.info(f"Already summarized: {summarized_path}")
         else:
@@ -39,7 +45,7 @@ class Summarize:
         paths = self.original_paths
         n_paths = len(paths)
         for i_path, path in enumerate(paths):
-            log.debug(f'Summarizing {i_path + 1}/{n_paths}: {path}')
+            log.info(f'Summarizing {i_path + 1}/{n_paths}: {path}')
             self.summarize(path)
 
     def summarize_url(self, url):
@@ -51,5 +57,5 @@ class Summarize:
         else:
             content = get_url_text(url)
             File(path).write(content)
-        
+
         self.summarize_desktop()

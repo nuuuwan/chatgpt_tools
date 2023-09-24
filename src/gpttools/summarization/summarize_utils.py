@@ -1,3 +1,4 @@
+import math
 from utils import Log
 
 from gpttools.core.ChatWrapper import ChatWrapper
@@ -7,26 +8,45 @@ log = Log('summarize_utils')
 MIN_BATCH_LEN = 10
 MAX_BATCH_LEN = 15_000
 
-BULLETS_PER_SUMMARY = 10
+CHARS_PER_BULLET = 1_000
 
 
-def summarize_text(text):
-    chat = ChatWrapper()
-    system_command = f'''
-You are a summarization assistant.
+CMD_PREAMBLE = '''
+The following is a part from a document:
+'''
 
-Given  a long article, you do ALL of the following:
-- list the {BULLETS_PER_SUMMARY} most important ideas and numbers,
-each in a short sentence,
-- mark bullets with a 💡icon.
-- replace ALL relavent words with their twitter handle
-    (e.g. replace "IMF" with "@IMF")
-    or hashtags (e.g. replace "China" with "#China").
+CMD_POSTAMBLE = '''
+You will be asked a set of questions about the part.
+'''
 
-Do you understand?
+
+def get_cmd_summarize(n_bullets: int):
+    return f'''
+Summarize into {n_bullets} unnumbered bullet points,
+including a space after each bullet paragraph.
         '''
-    chat.send_system(system_command)
-    return chat.send_user(text)
+
+
+CMD_PRETTIFY = '''
+In your summary, append emojis next to words, 
+replace each bullet with an emoji that represents the bullet's content, 
+and replace words with hashtags and handles
+        '''
+
+
+def summarize_text(text: str):
+    n_bullets = math.ceil(len(text) / CHARS_PER_BULLET)
+    log.debug(f'{n_bullets=:,}')
+    chat = ChatWrapper()
+
+    chat.append_system_message(CMD_PREAMBLE)
+    chat.append_user_message(text)
+    chat.append_system_message(CMD_POSTAMBLE)
+
+    chat.append_system_message(get_cmd_summarize(n_bullets))
+    chat.send()
+    chat.append_system_message(CMD_PRETTIFY)
+    return chat.send()
 
 
 def summarize_content(content):
@@ -50,7 +70,8 @@ def summarize_content(content):
 
         summarized_content += summarized_batch + '\n...\n'
 
-    return 'TL;DR (by #ChatGPT)\n\n' + summarized_content
+
+    return 'Summary (by #ChatGPT)\n\n' + summarized_content
 
 
 def batch_content(content: str, max_batch_len: int):
