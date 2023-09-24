@@ -70,5 +70,6 @@ class DocChatRunner:
 
             if DocChatRunner.is_refresh(input_text):
                 doc_chat = None
+                continue
 
             DocChatRunner.run_with_doc_chat(doc_chat, input_text)
