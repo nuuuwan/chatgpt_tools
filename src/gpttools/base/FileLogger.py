@@ -1,4 +1,3 @@
-
 from utils import File, Log
 
 CHARS_PER_BULLET = 1_000
@@ -14,9 +13,6 @@ class FileLogger:
 
     def write_log(self):
         File(self.log_file_path).write_lines(self.log_lines)
-        log.debug(
-            f'Wrote to {self.log_file_path} ({len(self.log_lines):,} lines)'
-        )
 
     def append_log(self, line: str):
         self.log_lines.append(line)

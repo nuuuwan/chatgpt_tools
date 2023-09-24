@@ -1,4 +1,5 @@
 import math
+import os
 from functools import cached_property
 
 from utils import File, Log, get_date_id
@@ -19,17 +20,21 @@ class DocChatBase(Chat, FileLogger):
     def __init__(self, file_path: str):
         Chat.__init__(self)
         FileLogger.__init__(self, file_path + f'.{get_date_id()}.log')
-
         self.file_path = file_path
-        self.content = File(file_path).read()
-        log.info(f'Loaded {file_path} ({len(self):,} chars)')
 
-    def __len__(self):
-        return len(self.content)
+    @cached_property
+    def content(self) -> str:
+        content = File(self.file_path).read()
+        log.info(f'Loaded {self.file_path} ({len(content):,}B)')
+        return content
+
+    @cached_property
+    def short_name(self):
+        return os.path.split(self.file_path)[-1][:-4]
 
     @cached_property
     def chunks(self) -> list[str]:
-        content_size = len(self)
+        content_size = len(self.content)
         n_batches = math.ceil(content_size / MAX_BATCH_LEN)
         avg_batch_size = int(content_size / n_batches)
         log.debug(f'{content_size=}, {n_batches=}, {avg_batch_size=}')
@@ -41,15 +46,20 @@ class DocChatBase(Chat, FileLogger):
             chunks[-1] += line + '\n'
         return chunks
 
+    def prep(self):
+        self.append_system_message(CMD_PREAMBLE)
+        for chunk in self.chunks:
+            self.append_user_message(chunk)
+        self.append_system_message(CMD_POSTAMBLE)
+        return self
+
     def do_prettify(self):
         self.append_system_message(CMD_PRETTIFY)
         return self.send()
 
     def do_summarize(self):
-        n_bullets = len(self) / CHARS_PER_BULLET
+        n_bullets = len(self.content) / CHARS_PER_BULLET
         self.append_system_message(get_cmd_summarize(n_bullets))
-        self.send()
-        self.append_system_message(CMD_PRETTIFY)
         return self.send()
 
     def do_generic(self, input_text):
@@ -62,38 +72,11 @@ class DocChatBase(Chat, FileLogger):
         )
 
     def do(self, input_text):
-        if input_text.strip() in ['sum', 'summary', 'summarize']:
-            return self.do_summarize()
-
-        if input_text.strip() in ['sum', 'summary', 'summarize']:
-            return self.do_summarize()
+        for func, cmd_list in [
+            (self.do_prettify, ['pretty', 'prettify']),
+            (self.do_summarize, ['sum', 'summary', 'summarize']),
+        ]:
+            if input_text.strip() in cmd_list:
+                return func()
 
         return self.do_generic(input_text)
-
-    def run(self) -> str:
-        print('')
-        print('-' * 64)
-        print(self.file_path)
-        print('-' * 64)
-
-        self.append_system_message(CMD_PREAMBLE)
-        for chunk in self.chunks:
-            self.append_user_message(chunk)
-        self.append_system_message(CMD_POSTAMBLE)
-
-        while True:
-            print()
-            input_text = input('> ')
-            self.append_log(input_text)
-            print()
-
-            if input_text.strip() == '':
-                continue
-
-            if input_text.strip() in ['exit', 'quit', 'x', 'q']:
-                break
-
-            assistant_response = self.do(input_text)
-
-            self.finish(assistant_response)
-            self.append_log(assistant_response)

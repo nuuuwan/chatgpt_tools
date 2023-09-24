@@ -35,7 +35,6 @@ class Chat:
         openai.api_key = os.getenv("OPENAI_API_KEY")  # noqa
         self.model = model
         self.options = DEFAULT_OPTIONS | options
-        log.debug(f'{self.model=}, {self.options=}')
         self.messages = []
         self.token_size = 0
 
@@ -61,7 +60,6 @@ class Chat:
         self.append_message(ChatRole.system, content)
 
     def append_user_message(self, content: str):
-        len(content)
         self.append_message(ChatRole.user, content)
 
     def append_assistant_message(self, content: str):
