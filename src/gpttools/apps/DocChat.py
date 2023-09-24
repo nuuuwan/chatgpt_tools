@@ -11,7 +11,9 @@ class DocChat(DocChatBase):
     @staticmethod
     def from_file(file_path) -> 'DocChat':
         content = File(file_path).read()
-        return DocChat(content)
+        doc_chat = DocChat(content)
+        log.info(f'Loaded {file_path}')
+        return doc_chat
 
     @staticmethod
     def get_desktop_paths() -> list[str]:

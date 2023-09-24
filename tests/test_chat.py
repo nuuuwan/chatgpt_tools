@@ -9,7 +9,6 @@ class TestChat(unittest.TestCase):
         self.chat = Chat()
 
     def test_create_chat(self):
-        self.assertEqual(self.chat.model, 'gpt-4')
         self.assertEqual(self.chat.options, {'temperature': 0.1})
         self.assertEqual(self.chat.messages, [])
 

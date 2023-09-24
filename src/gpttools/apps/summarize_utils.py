@@ -2,7 +2,7 @@ import math
 
 from utils import Log
 
-from gpttools.core.Chat import ChatWrapper
+from gpttools.core.Chat import Chat
 
 log = Log('summarize_utils')
 
@@ -38,7 +38,7 @@ and replace words with hashtags and handles
 def summarize_text(text: str):
     n_bullets = math.ceil(len(text) / CHARS_PER_BULLET)
     log.debug(f'{n_bullets=:,}')
-    chat = ChatWrapper()
+    chat = Chat()
 
     chat.append_system_message(CMD_PREAMBLE)
     chat.append_user_message(text)
