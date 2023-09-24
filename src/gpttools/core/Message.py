@@ -1,9 +1,11 @@
 from attr import dataclass
 
+from gpttools.core.ChatRole import ChatRole
+
 
 @dataclass
 class Message:
-    role: str
+    role: ChatRole
     content: str
 
     def todict(self):

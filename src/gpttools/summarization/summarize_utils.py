@@ -1,4 +1,5 @@
 import math
+
 from utils import Log
 
 from gpttools.core.ChatWrapper import ChatWrapper
@@ -28,8 +29,8 @@ including a space after each bullet paragraph.
 
 
 CMD_PRETTIFY = '''
-In your summary, append emojis next to words, 
-replace each bullet with an emoji that represents the bullet's content, 
+In your summary, append emojis next to words,
+replace each bullet with an emoji that represents the bullet's content,
 and replace words with hashtags and handles
         '''
 
@@ -69,7 +70,6 @@ def summarize_content(content):
         )
 
         summarized_content += summarized_batch + '\n...\n'
-
 
     return 'Summary (by #ChatGPT)\n\n' + summarized_content
 
