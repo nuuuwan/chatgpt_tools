@@ -1,15 +1,11 @@
 import math
-import os
 from functools import cached_property
 
-from utils import File, Log
+from utils import File, Log, get_date_id
 
-from gpttools.apps.DocCommands import (
-    CMD_POSTAMBLE,
-    CMD_PREAMBLE,
-    CMD_PRETTIFY,
-    get_cmd_summarize,
-)
+from gpttools.apps.DocCommands import (CMD_POSTAMBLE, CMD_PREAMBLE,
+                                       CMD_PRETTIFY, get_cmd_summarize)
+from gpttools.base.FileLogger import FileLogger
 from gpttools.core.Chat import MAX_BATCH_LEN, Chat
 from gpttools.core.ChatRole import ChatRole
 
@@ -19,28 +15,14 @@ CHARS_PER_BULLET = 1_000
 log = Log('DocChatBase')
 
 
-class DocChatBase(Chat):
+class DocChatBase(Chat, FileLogger):
     def __init__(self, file_path: str):
         Chat.__init__(self)
+        FileLogger.__init__(self, file_path + f'.{get_date_id()}.log')
+
         self.file_path = file_path
         self.content = File(file_path).read()
         log.info(f'Loaded {file_path} ({len(self):,} chars)')
-        self.log_lines = []
-
-    @cached_property
-    def log_file_path(self):
-        return self.file_path + '.log'
-
-    def write_log(self):
-        File(self.log_file_path).write_lines(self.log_lines)
-        log.debug(
-            f'Wrote to {self.log_file_path} ({len(self.log_lines):,} lines)'
-        )
-
-    def append_log(self, line: str):
-        self.log_lines.append(line)
-        self.log_lines.append('...')
-        self.write_log()
 
     def __len__(self):
         return len(self.content)
@@ -58,7 +40,7 @@ class DocChatBase(Chat):
                 chunks.append('')
             chunks[-1] += line + '\n'
         return chunks
-    
+
     def do_prettify(self):
         self.append_system_message(CMD_PRETTIFY)
         return self.send()
@@ -82,10 +64,10 @@ class DocChatBase(Chat):
     def do(self, input_text):
         if input_text.strip() in ['sum', 'summary', 'summarize']:
             return self.do_summarize()
-        
+
         if input_text.strip() in ['sum', 'summary', 'summarize']:
-            return  self.do_summarize()
-        
+            return self.do_summarize()
+
         return self.do_generic(input_text)
 
     def run(self) -> str:
@@ -93,7 +75,7 @@ class DocChatBase(Chat):
         print('-' * 64)
         print(self.file_path)
         print('-' * 64)
-        
+
         self.append_system_message(CMD_PREAMBLE)
         for chunk in self.chunks:
             self.append_user_message(chunk)

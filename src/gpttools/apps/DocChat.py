@@ -15,7 +15,7 @@ class DocChat(DocChatBase):
         for name_only in os.listdir(dir_desktop):
             if not name_only.endswith(".txt"):
                 continue
-            if "log." in name_only:
+            if name_only.endswith(".log"):
                 continue
             file_path = os.path.join(dir_desktop, name_only)
             file_paths.append(file_path)
