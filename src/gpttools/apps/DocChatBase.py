@@ -1,12 +1,15 @@
 import math
 import os
-import tempfile
 from functools import cached_property
 
 from utils import File, Log
 
-from gpttools.apps.DocCommands import (CMD_POSTAMBLE, CMD_PREAMBLE,
-                                       CMD_PRETTIFY, get_cmd_summarize)
+from gpttools.apps.DocCommands import (
+    CMD_POSTAMBLE,
+    CMD_PREAMBLE,
+    CMD_PRETTIFY,
+    get_cmd_summarize,
+)
 from gpttools.core.Chat import MAX_BATCH_LEN, Chat
 from gpttools.core.ChatRole import ChatRole
 
@@ -17,9 +20,29 @@ log = Log('DocChatBase')
 
 
 class DocChatBase(Chat):
-    def __init__(self, content: str):
+    def __init__(self, file_path: str):
         Chat.__init__(self)
-        self.content = content
+        self.file_path = file_path
+        self.content = File(file_path).read()
+        log.info(f'Loaded {file_path} ({len(self):,} chars)')
+        self.log_lines = []
+
+    @cached_property
+    def log_file_path(self):
+        tokens = list(os.path.split(self.file_path))
+        tokens[-1] = 'log.' + tokens[-1]
+        return os.path.join(*tokens)
+
+    def write_log(self):
+        File(self.log_file_path).write_lines(self.log_lines)
+        log.debug(
+            f'Wrote to {self.log_file_path} ({len(self.log_lines):,} lines)'
+        )
+
+    def append_log(self, line: str):
+        self.log_lines.append(line)
+        self.log_lines.append('...')
+        self.write_log()
 
     def __len__(self):
         return len(self.content)
@@ -43,18 +66,15 @@ class DocChatBase(Chat):
         self.append_system_message(get_cmd_summarize(n_bullets))
         self.send()
         self.append_system_message(CMD_PRETTIFY)
-        assistant_response = self.send()
+        return self.send()
 
-        temp_path = tempfile.NamedTemporaryFile(suffix='.summary.txt').name
-        File(temp_path).write(assistant_response)
-        log.info(f'Wrote to {temp_path}')
-        os.startfile(temp_path)
-
-        return assistant_response
+    def do_generic(self, input_text):
+        self.append_user_message(input_text)
+        return self.send()
 
     def finish(self, assistant_response):
         print(
-            ChatRole.get_emoji(ChatRole.assistant) + ':' + assistant_response
+            ChatRole.get_emoji(ChatRole.assistant) + ': ' + assistant_response
         )
 
     def run(self) -> str:
@@ -66,6 +86,7 @@ class DocChatBase(Chat):
         while True:
             print()
             input_text = input('> ')
+            self.append_log(input_text)
             print()
 
             if input_text.strip() == '':
@@ -77,6 +98,7 @@ class DocChatBase(Chat):
             if input_text.strip() in ['sum', 'summary', 'summarize']:
                 assistant_response = self.do_summarize()
             else:
-                assistant_response = self.append_user_message(input_text)
+                assistant_response = self.do_generic(input_text)
 
             self.finish(assistant_response)
+            self.append_log(assistant_response)
