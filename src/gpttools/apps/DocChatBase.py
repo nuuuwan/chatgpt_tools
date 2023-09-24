@@ -29,9 +29,7 @@ class DocChatBase(Chat):
 
     @cached_property
     def log_file_path(self):
-        tokens = list(os.path.split(self.file_path))
-        tokens[-1] = 'log.' + tokens[-1]
-        return os.path.join(*tokens)
+        return self.file_path + '.log'
 
     def write_log(self):
         File(self.log_file_path).write_lines(self.log_lines)
@@ -60,6 +58,10 @@ class DocChatBase(Chat):
                 chunks.append('')
             chunks[-1] += line + '\n'
         return chunks
+    
+    def do_prettify(self):
+        self.append_system_message(CMD_PRETTIFY)
+        return self.send()
 
     def do_summarize(self):
         n_bullets = len(self) / CHARS_PER_BULLET
@@ -77,7 +79,21 @@ class DocChatBase(Chat):
             ChatRole.get_emoji(ChatRole.assistant) + ': ' + assistant_response
         )
 
+    def do(self, input_text):
+        if input_text.strip() in ['sum', 'summary', 'summarize']:
+            return self.do_summarize()
+        
+        if input_text.strip() in ['sum', 'summary', 'summarize']:
+            return  self.do_summarize()
+        
+        return self.do_generic(input_text)
+
     def run(self) -> str:
+        print('')
+        print('-' * 64)
+        print(self.file_path)
+        print('-' * 64)
+        
         self.append_system_message(CMD_PREAMBLE)
         for chunk in self.chunks:
             self.append_user_message(chunk)
@@ -95,10 +111,7 @@ class DocChatBase(Chat):
             if input_text.strip() in ['exit', 'quit', 'x', 'q']:
                 break
 
-            if input_text.strip() in ['sum', 'summary', 'summarize']:
-                assistant_response = self.do_summarize()
-            else:
-                assistant_response = self.do_generic(input_text)
+            assistant_response = self.do(input_text)
 
             self.finish(assistant_response)
             self.append_log(assistant_response)

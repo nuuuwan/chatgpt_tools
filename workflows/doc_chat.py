@@ -2,6 +2,7 @@ from gpttools import DocChat
 
 
 def main():
+    print('')
     print('-' * 64)
     print('DOC CHAT')
     print('-' * 64)
@@ -21,7 +22,7 @@ def main():
             doc_chat = doc_chat_list[choice - 1]
         except BaseException:
             return False
-
+    
     doc_chat.run()
     print('-' * 64)
     return True
