@@ -44,13 +44,12 @@ class Summarize:
 
     def summarize_url(self, url):
         hash = hashx.md5(url)
-        path = os.path.join(self.dir_root, f'www-{hash}.summary.txt')
+        path = os.path.join(self.dir_root, f'www-{hash}.txt')
 
         if os.path.exists(path):
             log.info(f"Already summarized: {path}")
         else:
             content = get_url_text(url)
-            summarized_content = summarize_content(content)
-            File(path).write(summarized_content)
-            log.info(f"Saved {path}")
-        os.startfile(path)
+            File(path).write(content)
+        
+        self.summarize_desktop()
