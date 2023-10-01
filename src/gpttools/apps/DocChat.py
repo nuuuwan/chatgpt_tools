@@ -3,10 +3,15 @@ import os
 from functools import cached_property
 
 from pdfminer.high_level import extract_text
-from utils import File, Log, get_date_id
+from utils import File, Log, get_date_id, hashx
 
-from gpttools.apps.DocCommands import (CMD_POSTAMBLE, CMD_PREAMBLE,
-                                       CMD_PRETTIFY, get_cmd_summarize)
+from gpttools.apps import web_utils
+from gpttools.apps.DocCommands import (
+    CMD_POSTAMBLE,
+    CMD_PREAMBLE,
+    CMD_PRETTIFY,
+    get_cmd_summarize,
+)
 from gpttools.base.FileLogger import FileLogger
 from gpttools.core.Chat import MAX_BATCH_LEN, Chat
 
@@ -17,54 +22,63 @@ log = Log('DocChat')
 
 
 class DocChat(Chat, FileLogger):
-    def __init__(self, file_path: str):
+    @staticmethod
+    def load(file_path) -> 'DocChat':
+        ext = os.path.splitext(file_path)[-1]
+        if ext in ['.txt', '.md', '.log']:
+            return DocChat.load_txt(file_path)
+        elif ext in ['.pdf']:
+            return DocChat.load_pdf(file_path)
+        elif file_path.startswith('http'):
+            return DocChat.load_http(file_path)
+        else:
+            raise ValueError(f'Unsupported file extension: {ext}')
+
+    @staticmethod
+    def load_txt(file_path) -> 'DocChat':
+        content = File(file_path).read()
+        log.debug(f'Loaded {file_path} ({len(content):,}B)')
+        return DocChat(file_path, content)
+
+    @staticmethod
+    def load_pdf(file_path) -> 'DocChat':
+        txt_file_path = file_path + '.txt'
+        if not os.path.exists(txt_file_path):
+            content = extract_text(file_path)
+            log.debug(f'Loaded {file_path} ({len(content):,}B)')
+            File(txt_file_path).write(content)
+
+        else:
+            content = File(txt_file_path).read()
+            log.debug(f'Loaded {file_path} ({len(content):,}B)')
+        file_path = txt_file_path
+        return DocChat(file_path, content)
+
+    @staticmethod
+    def load_http(file_path) -> 'DocChat':
+        domain = file_path.split('/')[2]
+        h = hashx.md5(file_path)[:6]
+        dir_desktop = os.getenv('DIR_DESKTOP')
+        txt_file_path = os.path.join(dir_desktop, f'{domain}.{h}.txt')
+        if not os.path.exists(txt_file_path):
+            content = web_utils.get_url_text(file_path)
+            log.debug(f'Loaded {file_path} ({len(content):,}B)')
+            File(txt_file_path).write(content)
+        else:
+            content = File(txt_file_path).read()
+            log.debug(f'Loaded {file_path} ({len(content):,}B)')
+        file_path = txt_file_path
+        return DocChat(file_path, content)
+
+    def __init__(self, file_path: str, content: str):
         Chat.__init__(self)
         FileLogger.__init__(self, file_path + f'.{get_date_id()}.log')
         self.file_path = file_path
-
-    @cached_property
-    def emoji(self):
-        ext = os.path.splitext(self.file_path)[-1]
-        if ext in ['.txt', '.md', '.log']:
-            return '📄'
-        elif ext in ['.pdf']:
-            return '🅿️'
-        else:
-            raise ValueError(f'Unsupported file extension: {ext}')
+        self.content = content
 
     @cached_property
     def short_name(self):
-        return self.emoji + os.path.basename(self.file_path)
-
-    @cached_property
-    def content_txt(self) -> str:
-        content = File(self.file_path).read()
-        log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
-        return content
-
-    @cached_property
-    def content_pdf(self) -> str:
-        txt_file_path = self.file_path + '.txt'
-        if not os.path.exists(txt_file_path):
-            content = extract_text(self.file_path)
-            log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
-            File(txt_file_path).write(content)
-            self.file_path = txt_file_path
-        else:
-            content = File(txt_file_path).read()
-            log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
-
-        return content
-
-    @cached_property
-    def content(self) -> str:
-        ext = os.path.splitext(self.file_path)[-1]
-        if ext in ['.txt', '.md', '.log']:
-            return self.content_txt
-        elif ext in ['.pdf']:
-            return self.content_pdf
-        else:
-            raise ValueError(f'Unsupported file extension: {ext}')
+        return os.path.basename(self.file_path)
 
     @cached_property
     def chunks(self) -> list[str]:
