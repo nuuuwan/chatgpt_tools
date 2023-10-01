@@ -44,7 +44,6 @@ class DocChatRunner:
             if cmd_token == 'load':
                 source = tokens[1].replace('"', '').strip()
                 doc_chat = DocChat.load(source)
-                doc_chat.prep()
                 log = Log(doc_chat.short_name)
                 continue
 

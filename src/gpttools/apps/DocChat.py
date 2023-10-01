@@ -75,6 +75,7 @@ class DocChat(Chat, FileLogger):
         FileLogger.__init__(self, file_path + f'.{get_date_id()}.log')
         self.file_path = file_path
         self.content = content
+        self.prep()
 
     @cached_property
     def short_name(self):

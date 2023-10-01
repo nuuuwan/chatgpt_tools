@@ -8,6 +8,7 @@ You will be asked a set of questions about the part.
 
 
 def get_cmd_summarize(n_bullets: int):
+    n_bullets = int(n_bullets)
     return f'''
 Summarize into {n_bullets} numbered bullet points,
 including a space after each bullet paragraph.
