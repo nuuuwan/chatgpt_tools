@@ -37,23 +37,34 @@ class DocChat(Chat, FileLogger):
         return self.emoji + os.path.basename(self.file_path)
 
     @cached_property
+    def content_txt(self) -> str:
+        content = File(self.file_path).read()
+        log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
+        return content
+
+    @cached_property
+    def content_pdf(self) -> str:
+        txt_file_path = self.file_path + '.txt'
+        if not os.path.exists(txt_file_path):
+            content = extract_text(self.file_path)
+            log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
+            File(txt_file_path).write(content)
+            self.file_path = txt_file_path
+        else:
+            content = File(txt_file_path).read()
+            log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
+
+        return content
+
+    @cached_property
     def content(self) -> str:
         ext = os.path.splitext(self.file_path)[-1]
         if ext in ['.txt', '.md', '.log']:
-            content = File(self.file_path).read()
+            return self.content_txt
         elif ext in ['.pdf']:
-            txt_file_path = self.file_path + '.txt'
-            if os.path.exists(txt_file_path):
-                return File(txt_file_path).read()
-            else:
-                content = extract_text(self.file_path)
-                File(txt_file_path).write(content)
-                self.file_path = txt_file_path
+            return self.content_pdf
         else:
             raise ValueError(f'Unsupported file extension: {ext}')
-
-        log.debug(f'Loaded {self.file_path} ({len(content):,}B)')
-        return content
 
     @cached_property
     def chunks(self) -> list[str]:

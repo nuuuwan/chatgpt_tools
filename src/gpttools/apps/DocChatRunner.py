@@ -1,7 +1,8 @@
+import shlex
+
 from utils import Log
 
 from gpttools.apps.DocChat import DocChat
-import shlex
 
 log = Log('DocChatRunner')
 
@@ -28,7 +29,7 @@ class DocChatRunner:
         log = Log('DocChat')
         while True:
             log.info('')
-            input_text = input('?')
+            input_text = input('> ')
 
             if DocChatRunner.is_quit(input_text):
                 break
