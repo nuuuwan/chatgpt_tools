@@ -24,8 +24,9 @@ class DocChatRunner:
         doc_chat.append_log(assistant_response)
 
     @staticmethod
-    def run():
-        doc_chat = None
+    def run(file_path: str):
+        doc_chat = DocChat.load(file_path) if file_path else None
+
         log = Log('DocChat')
         while True:
             log.info('')

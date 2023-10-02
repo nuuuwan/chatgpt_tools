@@ -6,12 +6,8 @@ from pdfminer.high_level import extract_text
 from utils import File, Log, get_date_id, hashx
 
 from gpttools.apps import web_utils
-from gpttools.apps.DocCommands import (
-    CMD_POSTAMBLE,
-    CMD_PREAMBLE,
-    CMD_PRETTIFY,
-    get_cmd_summarize,
-)
+from gpttools.apps.DocCommands import (CMD_POSTAMBLE, CMD_PREAMBLE,
+                                       CMD_PRETTIFY, get_cmd_summarize)
 from gpttools.base.FileLogger import FileLogger
 from gpttools.core.Chat import MAX_BATCH_LEN, Chat
 
