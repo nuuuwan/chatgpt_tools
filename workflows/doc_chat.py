@@ -9,4 +9,4 @@ def main(file_path: str):
 
 if __name__ == '__main__':
     file_path = sys.argv[-1] if len(sys.argv) > 1 else None
-    main()
+    main(file_path)

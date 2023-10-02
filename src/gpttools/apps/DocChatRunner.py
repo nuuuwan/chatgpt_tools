@@ -25,9 +25,13 @@ class DocChatRunner:
 
     @staticmethod
     def run(file_path: str):
-        doc_chat = DocChat.load(file_path) if file_path else None
+        if file_path:
+            doc_chat = DocChat.load(file_path) 
+            log = Log('DocChat')
+        else:
+            doc_chat = None
+            log = Log('DocChatRunner')
 
-        log = Log('DocChat')
         while True:
             log.info('')
             input_text = input('> ')
