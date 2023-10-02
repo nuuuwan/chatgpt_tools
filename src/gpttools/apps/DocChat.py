@@ -72,7 +72,7 @@ class DocChat(Chat, FileLogger):
 
     def __init__(self, file_path: str, content: str):
         Chat.__init__(self)
-        FileLogger.__init__(self, file_path + f'.{get_date_id()}.log')
+        FileLogger.__init__(self, file_path + f'.{get_date_id()}.md')
         self.file_path = file_path
         self.content = content
         self.prep()
