@@ -4,7 +4,7 @@ import tempfile
 from pdfminer.high_level import extract_text
 from utils import File, Log, hashx
 
-from gpttools.app import web_utils
+from gpttools.apps import web_utils
 
 log = Log('Text')
 LEN_HASH = 16
