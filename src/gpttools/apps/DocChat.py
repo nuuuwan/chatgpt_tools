@@ -173,5 +173,5 @@ class DocChat(Chat, FileLogger):
         h = hashx.md5(text)[:6]
         audio_path = self.file_path + f'.{h}.mp3'
         tts.save(audio_path)
-        
+
         log.info(f'Synthesized {len(text):,}B to {audio_path}')

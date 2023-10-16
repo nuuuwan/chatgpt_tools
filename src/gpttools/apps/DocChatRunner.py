@@ -23,7 +23,7 @@ class DocChatRunner:
         doc_chat.speak(assistant_response)
         doc_chat.finish(assistant_response)
         doc_chat.append_log(assistant_response)
-        
+
     @staticmethod
     def run(file_path: str):
         if file_path:
