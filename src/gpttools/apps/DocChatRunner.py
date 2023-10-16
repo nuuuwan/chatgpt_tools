@@ -20,9 +20,10 @@ class DocChatRunner:
     def run_with_doc_chat(doc_chat, input_text):
         doc_chat.append_log(input_text)
         assistant_response = doc_chat.do(input_text)
+        doc_chat.speak(assistant_response)
         doc_chat.finish(assistant_response)
         doc_chat.append_log(assistant_response)
-
+        
     @staticmethod
     def run(file_path: str):
         if file_path:

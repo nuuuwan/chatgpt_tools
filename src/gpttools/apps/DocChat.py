@@ -2,6 +2,7 @@ import math
 import os
 from functools import cached_property
 
+from gtts import gTTS
 from pdfminer.high_level import extract_text
 from utils import File, Log, get_date_id, hashx
 
@@ -115,8 +116,10 @@ class DocChat(Chat, FileLogger):
             summary_list = []
             n_chunks = len(self.chunks)
             for i_chunk, chunk in enumerate(self.chunks):
-                log.debug(f'Running prep_big on {i_chunk + 1}/{n_chunks} chunks')
-            
+                log.debug(
+                    f'Running prep_big on {i_chunk + 1}/{n_chunks} chunks'
+                )
+
                 self.append_system_message(CMD_PREAMBLE)
                 self.append_user_message(chunk)
                 self.append_system_message(
@@ -129,7 +132,7 @@ class DocChat(Chat, FileLogger):
             content_new = SUMMARY_DELIM.join(summary_list)
             File(file_path_new).write(content_new)
             log.info(f'Wrote {len(content_new):,}B to {file_path_new}')
-            
+
         self.content = content_new
         self.file_path = file_path_new
         return self.prep()
@@ -163,3 +166,12 @@ class DocChat(Chat, FileLogger):
                 return func()
 
         return self.do_generic(input_text)
+
+    def speak(self, text):
+        log.debug(f'Synthesizing {len(text):,}B...')
+        tts = gTTS(text, lang='en', tld='co.uk')
+        h = hashx.md5(text)[:6]
+        audio_path = self.file_path + f'.{h}.mp3'
+        tts.save(audio_path)
+        
+        log.info(f'Synthesized {len(text):,}B to {audio_path}')
