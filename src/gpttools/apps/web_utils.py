@@ -6,7 +6,7 @@ from utils import Log
 log = Log('web_utils')
 
 
-def get_url_text(url):
+def get_url_text(url: str) -> str:
     options = Options()
     options.add_argument('-headless')
     driver = webdriver.Firefox(options=options)
@@ -18,3 +18,7 @@ def get_url_text(url):
     driver.quit()
     log.info(f'Extracted {len(text):,}B from {url}')
     return text
+
+
+def get_domain(url: str) -> str:
+    return url.split('/')[2]

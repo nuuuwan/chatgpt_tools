@@ -1,19 +1,19 @@
 import os
-import tempfile
 
 from gtts import gTTS
 from pdfminer.high_level import extract_text
-from utils import File, Log
+from utils import File, Log, hashx
 
 from gpttools.apps import web_utils
 from gpttools.core.Chat import Chat
 
 log = Log('Text')
+DIR_TEXT = os.environ['DIR_TEXT']
 
 
 class Text:
-    def __init__(self, label: str, content: str):
-        self.label = label
+    def __init__(self, file_path: str, content: str):
+        self.file_path = file_path
         self.content = content
 
     @property
@@ -28,98 +28,121 @@ class Text:
     def n_paragraphs(self):
         return len(self.content.split('\n\n'))
 
+    @property
+    def file_path_last(self):
+        return self.file_path.split('/')[-1]
+
     def __len__(self):
         return self.n_chars
 
     def __str__(self):
-        return f'{self.label}({self.n_characters:,}c, {self.n_words:,}w, {self.n_paragraphs:,}p)'
+        return f'{self.file_path_last}({self.n_characters:,}c, {self.n_words:,}w, {self.n_paragraphs:,}p)'
 
     def __repr__(self) -> str:
         return self.__str__()
 
-    @staticmethod
-    def get_file_path(label) -> str:
-        return os.path.join(tempfile.gettempdir(), f'text.{label}.txt')
-
-    @property
-    def file_path(self) -> str:
-        return Text.get_file_path(self.label)
-
     def serialize(self):
         File(self.file_path).write(self.content)
-        log.info(f'Serialized {self} to {self.file_path}')
+        log.debug(f'Serialized {self} to {self.file_path}')
 
     @staticmethod
-    def from_id(id):
-        file_path = Text.get_file_path(id)
-        content = File(file_path).read()
-        return Text(content)
+    def from_txt(file_path):
+        return Text(file_path, File(file_path).read())
 
     @staticmethod
-    def from_content(label, content):
-        t = Text(label, content)
-        t.serialize()
-        return t
+    def from_pdf(pdf_file_path):
+        txt_file_path = pdf_file_path + '.txt'
+        if not os.path.exists(txt_file_path):
+            content = extract_text(pdf_file_path)
+            File(txt_file_path).write(content)
+        else:
+            content = File(txt_file_path).read()
+        return Text(pdf_file_path + '.txt', content)
 
     @staticmethod
-    def from_txt(label, file_path):
-        return Text.from_content(label, File(file_path).read())
+    def from_url(url):
+        domain = web_utils.get_domain(url)
+        hash = hashx.md5(url)[:4]
+        txt_file_path = os.path.join(DIR_TEXT, f'{domain}.{hash}.txt')
+        if not os.path.exists(txt_file_path):
+            content = web_utils.get_url_text(url)
+            File(txt_file_path).write(content)
+        else:
+            content = File(txt_file_path).read()
+        return Text(txt_file_path, content)
 
     @staticmethod
-    def from_pdf(label, file_path):
-        return Text.from_content(label, extract_text(file_path))
-
-    @staticmethod
-    def from_url(label, url):
-        return Text.from_content(label, web_utils.get_url_text(url))
-
-    @staticmethod
-    def from_x(label, x):
+    def from_x(x):
         if x.endswith('.pdf'):
-            return Text.from_pdf(label, x)
+            return Text.from_pdf(x)
         elif x.endswith('.txt'):
-            return Text.from_txt(label, x)
+            return Text.from_txt(x)
         elif x.startswith('http'):
-            return Text.from_url(label, x)
-        return Text.from_content(label, x)
+            return Text.from_url(x)
+        raise Exception(f'Unknown data: {x}')
 
-    def summarize(self):
-        cmd = 'summary'
-
+    def do_textual_single(self, cmd, cmd_system_message):
         def cmd_func():
             c = Chat()
-            c.append_system_message('Summarize the following text:')
+            c.append_system_message(cmd_system_message)
             c.append_user_message(self.content)
             return c.send()
 
-        return self.do(cmd, cmd_func)
+        return self.do_texual(cmd, cmd_func)
 
-    def do(self, cmd: str, cmd_func: callable):
-        new_label = self.label + '.' + cmd
-        file_path = Text.get_file_path(new_label)
-        if os.path.exists(file_path):
-            new_content = File(file_path).read()
-        else:
-            new_content = cmd_func()
+    def summarize(self):
+        return self.do_textual_single(
+            'summarize.txt', 'Summarize the following text'
+        )
 
-        t = Text.from_content(new_label, new_content)
-        log.info(f'{cmd}({self}) => {str(t)}')
+    def bullet(self, n_bullets: int):
+        return self.do_textual_single(
+            f'bullet.{n_bullets}.txt',
+            f'Summarize the following text into {n_bullets} bullets.',
+        )
+
+    def do_texual(self, cmd: str, cmd_func: callable):
+        new_file_path = self.file_path + '.' + cmd
+        new_content = self.do(new_file_path, cmd_func)
+        if new_content is None:
+            new_content = File(new_file_path).read()
+        t = Text(new_file_path, new_content)
         return t
 
     def speak(self):
-        audio_path = self.file_path + '.mp3'
-        if os.path.exists(audio_path):
-            log.info(f'Audio file already exists: {audio_path}')
-            return
+        audio_path = self.file_path + '.speak.mp3'
 
-        log.debug(f'Synthesizing {str(self)}...')
-        text = self.content
-        tts = gTTS(text, lang='en', tld='co.uk')
+        def cmd_func():
+            log.debug(f'Synthesizing {str(self)}...')
+            text = self.content
+            tts = gTTS(text, lang='en', tld='co.uk')
 
-        tts.save(audio_path)
-        log.info(f'Synthesized {str(self)} to {audio_path}')
+            tts.save(audio_path)
+            log.info(f'Synthesized {str(self)} to {audio_path}')
+
+        self.do(audio_path, cmd_func)
+
+    def do(self, new_file_path: str, cmd_func: callable):
+        result = None
+        if not os.path.exists(new_file_path):
+            result = cmd_func()
+            if result:
+                File(new_file_path).write(result)
+
+        log.info(f'{self} => {new_file_path}')
+        return result
 
 
 if __name__ == '__main__':
-    t = Text.from_x('sample', os.path.join('tests', 'sample.txt'))
-    t.summarize().speak()
+    for x in [
+        os.path.join('tests', 'sample.txt'),
+        os.path.join('tests', 'sample.pdf'),
+        'https://www.dailymirror.lk'
+        + '/top-story'
+        + '/Israel-Palestine-conflict-MR-says-war-is-not-the-solution'
+        + '/155-269306',
+    ]:
+        log.debug(x)
+        t = Text.from_x(x)
+        t.summarize().speak()
+        t.bullet(5).speak()
