@@ -12,7 +12,7 @@ from gpttools.base.FileLogger import FileLogger
 from gpttools.core.Chat import MAX_BATCH_LEN, Chat
 
 CHARS_PER_BULLET = 1_000
-
+MIN_SIZE_FOR_PREP_BIG = 10_000
 
 log = Log('DocChat')
 
@@ -71,7 +71,10 @@ class DocChat(Chat, FileLogger):
         FileLogger.__init__(self, file_path + f'.{get_date_id()}.md')
         self.file_path = file_path
         self.content = content
-        self.prep()
+        if len(self.content) > MIN_SIZE_FOR_PREP_BIG:
+            self.prep_big()
+        else:
+            self.prep()
 
     @cached_property
     def short_name(self):
@@ -98,6 +101,38 @@ class DocChat(Chat, FileLogger):
         self.append_system_message(CMD_POSTAMBLE)
         log.debug('Prep done.')
         return self
+
+    def prep_big(self):
+        SUMMARY_DELIM = '\n...\n'
+        file_path_new = self.file_path + '.prep_big.txt'
+
+        if os.path.exists(file_path_new):
+            content_new = File(file_path_new).read()
+            summary_list = content_new.split(SUMMARY_DELIM)
+            log.info(f'Loaded {len(content_new):,}B from {file_path_new}')
+        else:
+            N_BULLETS_PREP_BIG = 5
+            summary_list = []
+            n_chunks = len(self.chunks)
+            for i_chunk, chunk in enumerate(self.chunks):
+                log.debug(f'Running prep_big on {i_chunk + 1}/{n_chunks} chunks')
+            
+                self.append_system_message(CMD_PREAMBLE)
+                self.append_user_message(chunk)
+                self.append_system_message(
+                    get_cmd_summarize(N_BULLETS_PREP_BIG)
+                )
+                summary = self.send()
+                summary_list.append(summary)
+                self.cleanup()
+
+            content_new = SUMMARY_DELIM.join(summary_list)
+            File(file_path_new).write(content_new)
+            log.info(f'Wrote {len(content_new):,}B to {file_path_new}')
+            
+        self.content = content_new
+        self.file_path = file_path_new
+        return self.prep()
 
     def do_prettify(self):
         log.debug('Prettifying...')

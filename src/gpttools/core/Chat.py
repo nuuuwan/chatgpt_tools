@@ -27,7 +27,7 @@ DEFAULT_OPTIONS = dict(
 DEFAULT_MODEL = 'gpt-4'
 MAX_TOKEN_SIZE = 2**16
 
-MAX_BATCH_LEN = 2**12
+MAX_BATCH_LEN = 2**14
 
 
 class Chat:
@@ -48,7 +48,7 @@ class Chat:
             self.messages = self.messages[1:]
             self.token_size -= len(message['content'])
 
-            log.debug(f'{self.n_messages=}, {self.token_size=:,} (pruned)')
+            log.warning(f'{self.n_messages=}, {self.token_size=:,} (pruned)')
 
     def append_message(self, role: ChatRole, content: str):
         self.token_size += len(content)
@@ -64,6 +64,11 @@ class Chat:
 
     def append_assistant_message(self, content: str):
         self.append_message(ChatRole.assistant, content)
+
+    def cleanup(self):
+        self.messages = []
+        self.token_size = 0
+        log.debug('Cleaned-up!')
 
     def send(self) -> str:
         log.debug(f'{self.n_messages=}, {self.token_size=:,}')
