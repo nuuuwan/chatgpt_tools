@@ -26,7 +26,7 @@ class DocChatRunner:
     @staticmethod
     def run(file_path: str):
         if file_path:
-            doc_chat = DocChat.load(file_path) 
+            doc_chat = DocChat.load(file_path)
             log = Log('DocChat')
         else:
             doc_chat = None
