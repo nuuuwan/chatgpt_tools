@@ -11,7 +11,7 @@ DIR_SAMPLES = os.path.join('tests', 'samples')
 
 class TestText(unittest.TestCase):
     def setUp(self) -> None:
-        for file in os.listdir(DIR_TEMP):
+        for file in os.listdir(DIR_SAMPLES):
             if file.endswith('.txt') or file.endswith('.pdf'):
                 shutil.copyfile(
                     os.path.join(DIR_TEMP, file),
