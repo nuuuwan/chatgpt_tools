@@ -1,4 +1,6 @@
+import math
 import os
+import tempfile
 
 from gtts import gTTS
 from pdfminer.high_level import extract_text
@@ -8,7 +10,9 @@ from gpttools.apps import web_utils
 from gpttools.core.Chat import Chat
 
 log = Log('Text')
-DIR_TEXT = os.environ['DIR_TEXT']
+DIR_TEXT = os.environ.get('DIR_TEXT', tempfile.gettempdir())
+MAX_BATCH_LEN = 20_000
+log.debug(f'{DIR_TEXT=}, {MAX_BATCH_LEN=}')
 
 
 class Text:
@@ -25,7 +29,7 @@ class Text:
         return len(self.content.split(' '))
 
     @property
-    def n_paragraphs(self):
+    def n_lines(self):
         return len(self.content.split('\n\n'))
 
     @property
@@ -33,17 +37,13 @@ class Text:
         return self.file_path.split('/')[-1]
 
     def __len__(self):
-        return self.n_chars
+        return self.n_characters
 
     def __str__(self):
-        return f'{self.file_path_last}({self.n_characters:,}c, {self.n_words:,}w, {self.n_paragraphs:,}p)'
+        return f'{self.file_path_last}({self.n_characters:,}c, {self.n_words:,}w, {self.n_lines:,}l)'
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    def serialize(self):
-        File(self.file_path).write(self.content)
-        log.debug(f'Serialized {self} to {self.file_path}')
 
     @staticmethod
     def from_txt(file_path):
@@ -81,7 +81,23 @@ class Text:
             return Text.from_url(x)
         raise Exception(f'Unknown data: {x}')
 
+    def get_chunks(self) -> list[str]:
+        content_size = len(self.content)
+        n_batches = math.ceil(content_size / MAX_BATCH_LEN)
+        avg_batch_size = int(content_size / n_batches)
+        log.debug(f'{content_size=}, {n_batches=}, {avg_batch_size=}')
+
+        chunks = ['']
+        for line in self.content.splitlines():
+            if len(chunks[-1]) + len(line) > avg_batch_size:
+                chunks.append('')
+            chunks[-1] += line + '\n'
+        return chunks
+
     def do_textual_single(self, cmd, cmd_system_message):
+        if len(self) > MAX_BATCH_LEN:
+            raise Exception(f'{self} is too large!')
+
         def cmd_func():
             c = Chat()
             c.append_system_message(cmd_system_message)
@@ -89,6 +105,14 @@ class Text:
             return c.send()
 
         return self.do_texual(cmd, cmd_func)
+
+    def do_texual(self, cmd: str, cmd_func: callable):
+        new_file_path = self.file_path + '.' + cmd
+        new_content = self.do(new_file_path, cmd_func)
+        if new_content is None:
+            new_content = File(new_file_path).read()
+        t = Text(new_file_path, new_content)
+        return t
 
     def summarize(self):
         return self.do_textual_single(
@@ -101,13 +125,37 @@ class Text:
             f'Summarize the following text into {n_bullets} bullets.',
         )
 
-    def do_texual(self, cmd: str, cmd_func: callable):
-        new_file_path = self.file_path + '.' + cmd
-        new_content = self.do(new_file_path, cmd_func)
-        if new_content is None:
-            new_content = File(new_file_path).read()
-        t = Text(new_file_path, new_content)
-        return t
+    def smaller(self):
+        if len(self) < MAX_BATCH_LEN:
+            log.warning(f'{self} is already smaller than {MAX_BATCH_LEN}')
+            return self
+        cmd = 'smaller.txt'
+
+        def cmd_func():
+            chunks = self.get_chunks()
+            summary_list = []
+            for i, chunk in enumerate(chunks):
+                chunk_file_path = self.file_path + f'.chunk-{i:03d}.txt'
+                File(chunk_file_path).write(chunk)
+                t_chunk = Text(chunk_file_path, chunk)
+                log.debug(f'{t_chunk} => {chunk_file_path}')
+                t_chunk_summary = t_chunk.summarize()
+                summary_list.append(t_chunk_summary.content)
+            DELIM_CHUNKS = '\n\n...\n\n'
+            summary = DELIM_CHUNKS.join(summary_list)
+            return summary
+
+        return self.do_texual(cmd, cmd_func)
+
+    def do(self, new_file_path: str, cmd_func: callable):
+        result = None
+        if not os.path.exists(new_file_path):
+            result = cmd_func()
+            if result:
+                File(new_file_path).write(result)
+
+        log.info(f'{self} => {new_file_path}')
+        return result
 
     def speak(self):
         audio_path = self.file_path + '.speak.mp3'
@@ -122,27 +170,20 @@ class Text:
 
         self.do(audio_path, cmd_func)
 
-    def do(self, new_file_path: str, cmd_func: callable):
-        result = None
-        if not os.path.exists(new_file_path):
-            result = cmd_func()
-            if result:
-                File(new_file_path).write(result)
-
-        log.info(f'{self} => {new_file_path}')
-        return result
-
 
 if __name__ == '__main__':
-    for x in [
-        os.path.join('tests', 'sample.txt'),
-        os.path.join('tests', 'sample.pdf'),
-        'https://www.dailymirror.lk'
-        + '/top-story'
-        + '/Israel-Palestine-conflict-MR-says-war-is-not-the-solution'
-        + '/155-269306',
-    ]:
-        log.debug(x)
-        t = Text.from_x(x)
-        t.summarize().speak()
-        t.bullet(5).speak()
+    # for x in [
+    #     os.path.join('tests', 'sample.txt'),
+    #     os.path.join('tests', 'sample.pdf'),
+    #     'https://www.dailymirror.lk'
+    #     + '/top-story'
+    #     + '/Israel-Palestine-conflict-MR-says-war-is-not-the-solution'
+    #     + '/155-269306',
+    # ]:
+    #     log.debug(x)
+    #     t = Text.from_x(x)
+    #     t.summarize().speak()
+    #     t.bullet(5).speak()
+
+    t = Text.from_txt(os.path.join('tests', 'sample-large.txt'))
+    t.smaller().summarize()
