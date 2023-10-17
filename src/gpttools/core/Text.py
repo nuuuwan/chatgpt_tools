@@ -173,8 +173,8 @@ class Text:
 
 if __name__ == '__main__':
     # for x in [
-    #     os.path.join('tests', 'sample.txt'),
-    #     os.path.join('tests', 'sample.pdf'),
+    #     os.path.join('tests', 'samples','sample.txt'),
+    #     os.path.join('tests', 'samples','sample.pdf'),
     #     'https://www.dailymirror.lk'
     #     + '/top-story'
     #     + '/Israel-Palestine-conflict-MR-says-war-is-not-the-solution'
@@ -185,5 +185,6 @@ if __name__ == '__main__':
     #     t.summarize().speak()
     #     t.bullet(5).speak()
 
-    t = Text.from_txt(os.path.join('tests', 'sample-large.txt'))
+    t = Text.from_txt(os.path.join('tests', 'samples', 'sample-large.txt'))
     t.smaller().summarize()
+    t.summarize()
